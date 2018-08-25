@@ -1,0 +1,115 @@
+Tornado 主要服务分为  服务器模块（httpserver）    IO接口模块（ioloop）    web模块（web）
+
+第一步 :  导入对应的模块
+第二步 :  构建一个application对象,并且进行端口创建和监听
+第三步 :  开始分发路由,配置Handler
+第四步 :  实现分发路由的Handler方法,并且给方法绑定对应的html文件,和正则的匹配规则
+第五步 :  修改默认模板设置路径
+
+参数如何传递 :
+Tornado后台接收前端的数据最常用的方法是：
+self.get_argument（‘参数名’）
+从请求体和查询字符串中返回指定参数name的值，注意返回的是list列表（即使对应name参数只有一个值）。若未找到name参数，则返回空列表[]。
+
+
+tornado 3、获取参数的几种方式
+一.通过路由正则参数
+二.通过self.get_argument()  ,是trnado 自带的,不能解析json ,只能解析表单,控制等数据
+三.通过self.request.body    , 取的是json 格式的文件
+
+#这个两个方法,合并之后就变成上面的
+get_query_argument(name, default=_ARG_DEFAULT, strip=True)
+get_body_argument(name, default=_ARG_DEFAULT, strip=True)
+
+Tornado后台传输数据给前端
+self.write(string)
+self.render()
+
+#导入相关服务模块
+import tornado.httpserver
+import tornado.ioloop
+import tornado.web
+
+#管理路由的,分发路由
+class IndexHandler(tornado.web.RequestHandler):
+     def get(self):
+        greeting =  'Hello'
+         self.write(greeting + ', friendly user!')
+'''
+# 将一些额外的参数传递给application
+settings = {
+    "template_path": 'views',
+    'cookie_secret': 'asdfpojaksdfyknasdfklasdf',
+    'ui_methods': mt,
+    'ui_modules': mm,
+    'static_path': 'static',
+}
+
+# 实例化一个application  分发路由映射  ,在去请求对应的方法,然后是方法和客户端服务器构成链接
+application = tornado.web.Application([
+    (r"/index", IndexHandler),
+    (r"/login", LoginHandler),
+    (r"/home", HomeHandler),
+], **settings)
+
+'''
+#启动  创建服务端口   连接
+if __name__ == "__main__":
+     # 最好放在外面
+     app = tornado.web.Application(handlers=[
+     (r"/", IndexHandler),
+     ])
+     http_server = tornado.httpserver.HTTPServer(app)
+     http_server.listen(8000)
+     tornado.ioloop.IOLoop.current().start()
+
+通过 tornado.httpserver.HTTPServer 绑定 Application 对象
+通过 tornado.httpserver.HTTPServer().listen() 设置监听端口
+通过 tornado.ioloop.IOLoop.current().start() 开始循环监听端口
+ioloop
+流程 : 客户端进行请求 循环监听socket ,当拿到connectScoket的时候,就开始发送http报文
+       报文发送给application 里的路由映射表,再由路由映射表中的class 函数进行封装处理之后,
+       再重新封装好给html,就是客户端页面进行显示
+
+注意 : epoll
+简单理解，普通socket, while(1) 拿到connectSocket之后要死等connectSocket.recv
+而epoll去监听 serverSocketFd 的 epollin 事件
+发生时，回调 serverSocket.accept
+监听connectSockect 的 epollin 事件，发生时，回调connectSocket.recv，然后做对应操作
+类比银行，顾客就是connectSockect, fd写入就是排到队了
+前者就是顾客不停的去看排没排到队
+后者就是顾客排到队，柜台会喊顾客
+
+链接数据库tornado , 封装成面向对象
+import torndb
+class Application(tornado.web.Application):
+    def __init__(self):
+        handlers = [
+            (r"/", IndexHandler),
+        ]
+        settings = dict(
+            template_path=os.path.join(os.path.dirname(__file__), "templates"),
+            static_path=os.path.join(os.path.dirname(__file__), "statics"),
+            debug=True,
+        )
+        super(Application, self).__init__(handlers, **settings)
+        # 创建一个全局mysql连接实例供handler使用
+        self.db = torndb.Connection(
+            host="127.0.0.1",
+            database="itcast",
+            user="root",
+            password="mysql"
+        )
+
+
+数据库
+execute(sql)
+    可接受一条语句从而执行
+executemany(templet,args)
+    能同时执行多条语句，执行同样多的语句可比execute()快很多，强烈建议执行多条语句时使用executemany
+
+
+
+
+
+
